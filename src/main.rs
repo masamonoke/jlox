@@ -1,9 +1,10 @@
+use jlox::scanner::Scanner;
 use anyhow::Result;
 
 fn run(source: Vec<char>) {
-    for c in source {
-        print!("{}", c);
-    }
+    let mut scanner = Scanner::new(source);
+    scanner.scan();
+    scanner.log();
 }
 
 fn read_file(filename: &str) -> Result<String> {
