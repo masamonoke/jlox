@@ -135,7 +135,7 @@ impl Scanner {
 
         self.advance();
         let string: String = self.source[self.start + 1..self.current - 1].iter().collect();
-        self.add_token(TokenType::String, Some(Literal::new_string(string)));
+        self.add_token(TokenType::String, Some(Literal::String(string)));
 
         return true
     }
@@ -159,7 +159,7 @@ impl Scanner {
 
         let number: String = self.source[self.start..self.current].iter().collect();
         let number: f32 = number.parse().unwrap();
-        self.add_token(TokenType::Number, Some(Literal::new_integral(number)));
+        self.add_token(TokenType::Number, Some(Literal::Number(number)));
 
         return true
     }
@@ -255,10 +255,9 @@ impl Scanner {
             let lexeme = t.lexeme.clone();
             if t.literal.is_some() {
                 let literal = t.literal.clone().unwrap();
-                if literal.num().is_some() {
-                    println!("Token type: {:?}, lexeme: {}, literal: {}", token_type, lexeme, literal.num().unwrap());
-                } else {
-                    println!("Token type: {:?}, lexeme: {}, literal: {}", token_type, lexeme, literal.string().unwrap());
+                match literal {
+                    Literal::Number(num) => println!("Token type: {:?}, lexeme: {}, literal: {}", token_type, lexeme, num),
+                    Literal::String(string) => println!("Token type: {:?}, lexeme: {}, literal: {}", token_type, lexeme, string)
                 }
             } else {
                 println!("Token type: {:?}, lexeme: {}", token_type, lexeme);

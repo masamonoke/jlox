@@ -42,27 +42,9 @@ pub enum TokenType {
 }
 
 #[derive(Clone)]
-pub struct Literal {
-    num: Option<f32>,
-    str: Option<String>
-}
-
-impl Literal {
-    pub fn new_integral(num: f32) -> Literal {
-        Literal { num: Some(num), str: None }
-    }
-
-    pub fn new_string(str: String) -> Literal {
-        Literal { num: None, str: Some(str) }
-    }
-
-    pub fn num(&self) -> &Option<f32> {
-        return &self.num;
-    }
-
-    pub fn string(&self) -> Option<&String> {
-        return self.str.as_ref();
-    }
+pub enum Literal {
+    Number(f32),
+    String(String)
 }
 
 pub struct Token {
