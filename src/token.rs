@@ -1,4 +1,4 @@
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     LeftParenthesis,
     RightParenthesis,
@@ -44,9 +44,12 @@ pub enum TokenType {
 #[derive(Clone)]
 pub enum Literal {
     Number(f32),
-    String(String)
+    String(String),
+    Bool(bool),
+    Nil
 }
 
+#[derive(Clone)]
 pub struct Token {
     pub typ: TokenType,
     pub lexeme: String,

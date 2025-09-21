@@ -1,10 +1,18 @@
 use jlox::scanner::Scanner;
+use jlox::parser::Parser;
 use anyhow::Result;
 
 fn run(source: Vec<char>) {
     let mut scanner = Scanner::new(source);
     scanner.scan();
     scanner.log();
+    let tokens = scanner.tokens();
+    let mut parser = Parser::new(tokens);
+    let expr = parser.parse();
+
+    assert!(expr.is_ok());
+
+    println!("{}", Parser::print_ast(&expr.unwrap()));
 }
 
 fn read_file(filename: &str) -> Result<String> {

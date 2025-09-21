@@ -46,8 +46,13 @@ impl Scanner {
         self.tokens.push(Token { typ: TokenType::Eof, lexeme: "".to_string(), literal: None, line: self.line });
     }
 
+    pub fn tokens(&self) -> Vec<Token> {
+        // TODO: need to assert if scan is happened
+        self.tokens.clone()
+    }
+
     fn is_end(&self) -> bool {
-        return self.current >= self.source.len();
+        self.current >= self.source.len()
     }
 
     fn scan_token(&mut self) {
@@ -137,7 +142,7 @@ impl Scanner {
         let string: String = self.source[self.start + 1..self.current - 1].iter().collect();
         self.add_token(TokenType::String, Some(Literal::String(string)));
 
-        return true
+        true
     }
 
     fn match_number(&mut self, symbol: char) -> bool {
@@ -145,14 +150,14 @@ impl Scanner {
             return false
         }
 
-        while self.peek().map_or(false, Scanner::is_digit) {
+        while self.peek().is_some_and(Scanner::is_digit) {
             self.advance();
         }
 
-        let is_next_digit = self.peek_next().is_some_and(|c| Scanner::is_digit(c));
+        let is_next_digit = self.peek_next().is_some_and(Scanner::is_digit);
         if self.peek().is_some_and(|c| c == '.') && is_next_digit {
             self.advance();
-            while self.peek().map_or(false, Scanner::is_digit) {
+            while self.peek().is_some_and(Scanner::is_digit) {
                 self.advance();
             }
         }
@@ -161,7 +166,7 @@ impl Scanner {
         let number: f32 = number.parse().unwrap();
         self.add_token(TokenType::Number, Some(Literal::Number(number)));
 
-        return true
+        true
     }
 
     fn match_identifier(&mut self, symbol: char) -> bool {
@@ -170,16 +175,17 @@ impl Scanner {
         }
 
         let is_identifier = |symbol: char| {
-            let is_alphabet = (symbol >= 'a' && symbol <= 'z') ||
-            (symbol >= 'A' && symbol <= 'Z') || (symbol  == '_');
-            return is_alphabet || Scanner::is_digit(symbol);
+            let is_alphabet = symbol.is_ascii_lowercase() ||
+            symbol.is_ascii_uppercase() || (symbol  == '_');
+
+            is_alphabet || Scanner::is_digit(symbol)
         };
 
         if !is_identifier(symbol) {
             return false;
         }
 
-        while self.peek().is_some_and(|c| is_identifier(c)) {
+        while self.peek().is_some_and(is_identifier) {
             self.advance();
         }
 
@@ -190,17 +196,17 @@ impl Scanner {
             self.add_token_without_lexeme(TokenType::Identifier);
         }
 
-        return true;
+        true
     }
 
     fn is_digit(symbol: char) -> bool {
-        symbol >= '0' && symbol <= '9'
+        symbol.is_ascii_digit()
     }
 
     fn advance(&mut self) -> char {
         let c = self.source[self.current];
         self.current += 1;
-        return c;
+        c
     }
 
     fn add_token_without_lexeme(&mut self, typ: TokenType) {
@@ -230,7 +236,7 @@ impl Scanner {
         }
 
         self.current += 1;
-        return true;
+        true
     }
 
     fn peek(&self) -> Option<char> {
@@ -242,11 +248,11 @@ impl Scanner {
     }
 
     fn peek_next(&self) -> Option<char> {
-        if self.current + 1 > self.source.len() {
+        if self.current + 1 >= self.source.len() {
             return None
         }
 
-        return Some(self.source[self.current + 1]);
+        Some(self.source[self.current + 1])
     }
 
     pub fn log(&self) {
@@ -257,7 +263,8 @@ impl Scanner {
                 let literal = t.literal.clone().unwrap();
                 match literal {
                     Literal::Number(num) => println!("Token type: {:?}, lexeme: {}, literal: {}", token_type, lexeme, num),
-                    Literal::String(string) => println!("Token type: {:?}, lexeme: {}, literal: {}", token_type, lexeme, string)
+                    Literal::String(string) => println!("Token type: {:?}, lexeme: {}, literal: {}", token_type, lexeme, string),
+                    _ => todo!()
                 }
             } else {
                 println!("Token type: {:?}, lexeme: {}", token_type, lexeme);
