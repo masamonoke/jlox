@@ -41,7 +41,7 @@ pub enum TokenType {
     Eof
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Literal {
     Number(f32),
     String(String),
@@ -49,7 +49,7 @@ pub enum Literal {
     Nil
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Token {
     pub typ: TokenType,
     pub lexeme: String,

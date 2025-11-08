@@ -12,12 +12,23 @@ pub struct Parser {
 #[derive(Debug)]
 pub struct ParseError;
 
+#[derive(Debug)]
 pub enum Expression {
     Binary(Box<Expression>, Token, Box<Expression>),
     Unary(Token, Box<Expression>),
     Literal(Literal),
     Grouping(Box<Expression>),
 }
+
+// expression     → equality ;
+// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+// term           → factor ( ( "-" | "+" ) factor )* ;
+// factor         → unary ( ( "/" | "*" ) unary )* ;
+// unary          → ( "!" | "-" ) unary
+//                | primary ;
+// primary        → NUMBER | STRING | "true" | "false" | "nil"
+//                | "(" expression ")" ;
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
@@ -77,8 +88,11 @@ impl Parser {
         while self.match_token(&[TokenType::Minus, TokenType::Plus]) {
             let op = self.previous();
             let right = self.factor();
-            if expr.is_err() || right.is_err() {
-                todo!()
+            if expr.is_err() {
+                return Err(expr.err().unwrap());
+            }
+            if right.is_err() {
+                return Err(right.err().unwrap());
             }
             expr = Ok(Expression::Binary(
                 Box::new(expr.unwrap()),
