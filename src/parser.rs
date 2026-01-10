@@ -1,6 +1,5 @@
 use crate::{
-    error::Error,
-    token::{Literal, Token, TokenType},
+    error::Error, expression::Expression, statement::Statement, token::{Literal, Token, TokenType}
 };
 
 pub struct Parser {
@@ -12,14 +11,13 @@ pub struct Parser {
 #[derive(Debug)]
 pub struct ParseError;
 
-#[derive(Debug)]
-pub enum Expression {
-    Binary(Box<Expression>, Token, Box<Expression>),
-    Unary(Token, Box<Expression>),
-    Literal(Literal),
-    Grouping(Box<Expression>),
-}
-
+// Grammar:
+//
+// program        → statement* EOF ;
+// statement      → exprStmt
+//                | printStmt ;
+// exprStmt       → expression ";" ;
+// printStmt      → "print" expression ";" ;
 // expression     → equality ;
 // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
@@ -39,11 +37,31 @@ impl Parser {
         }
     }
 
-    pub fn expression(&mut self) -> Result<Expression, ParseError> {
+    fn statement(&mut self) -> Result<Statement, ParseError> {
+        if self.match_token(&[TokenType::Print]) {
+            return self.print_statement()
+        }
+
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Result<Statement, ParseError> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after value")?;
+        Ok(Statement::Print(expr))
+    }
+
+    fn expression_statement(&mut self) -> Result<Statement, ParseError> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after value")?;
+        Ok(Statement::Expression(expr))
+    }
+
+    fn expression(&mut self) -> Result<Expression, ParseError> {
         self.equality()
     }
 
-    pub fn equality(&mut self) -> Result<Expression, ParseError> {
+    fn equality(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.comparison();
         while self.match_token(&[TokenType::NotEqual, TokenType::EqualEqual]) {
             let op = self.previous();
@@ -60,7 +78,7 @@ impl Parser {
         expr
     }
 
-    pub fn comparison(&mut self) -> Result<Expression, ParseError> {
+    fn comparison(&mut self) -> Result<Expression, ParseError> {
         let mut expr = self.term();
         while self.match_token(&[
             TokenType::Greater,
@@ -240,40 +258,47 @@ impl Parser {
     //     }
     // }
 
-    pub fn parse(&mut self) -> Result<Expression, ParseError> {
-        self.expression()
-    }
+    pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
+        let mut statements = vec![];
 
-    pub fn print_ast(expr: &Expression) -> String {
-        let mut string = String::new();
-        string += "(";
-
-        match expr {
-            Expression::Binary(lhs, op, rhs) => {
-                string += &(op.lexeme.clone() + " ");
-                string += &(Self::print_ast(lhs) + " ");
-                string += &Self::print_ast(rhs);
-            },
-            Expression::Grouping(group) => {
-                string += "grouping ";
-                string += &Self::print_ast(group);
-            }
-            Expression::Literal(liter) => {
-                match liter {
-                    Literal::Number(n) => return n.to_string(),
-                    Literal::String(s) => return String::from(s),
-                    Literal::Bool(b) => return b.to_string(),
-                    Literal::Nil => return String::from("nil")
-                }
-            }
-            Expression::Unary(lexeme, rhs) => {
-                string += &(lexeme.lexeme.clone() + " ");
-                string += &Self::print_ast(rhs);
-            }
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
         }
 
-        string += ")";
-        string
+        Ok(statements)
     }
+
+    // TODO: may be use it with cli arg passed
+    // fn print_ast(expr: &Expression) -> String {
+    //     let mut string = String::new();
+    //     string += "(";
+    //
+    //     match expr {
+    //         Expression::Binary(lhs, op, rhs) => {
+    //             string += &(op.lexeme.clone() + " ");
+    //             string += &(Self::print_ast(lhs) + " ");
+    //             string += &Self::print_ast(rhs);
+    //         },
+    //         Expression::Grouping(group) => {
+    //             string += "grouping ";
+    //             string += &Self::print_ast(group);
+    //         }
+    //         Expression::Literal(liter) => {
+    //             match liter {
+    //                 Literal::Number(n) => return n.to_string(),
+    //                 Literal::String(s) => return String::from(s),
+    //                 Literal::Bool(b) => return b.to_string(),
+    //                 Literal::Nil => return String::from("nil")
+    //             }
+    //         }
+    //         Expression::Unary(lexeme, rhs) => {
+    //             string += &(lexeme.lexeme.clone() + " ");
+    //             string += &Self::print_ast(rhs);
+    //         }
+    //     }
+    //
+    //     string += ")";
+    //     string
+    // }
 
 }

@@ -1,4 +1,4 @@
-use crate::{parser::Expression, token::{Literal, Token, TokenType}};
+use crate::{expression::Expression, statement::Statement, token::{Literal, Token, TokenType}};
 use anyhow::{anyhow, Ok, Result};
 
 type Number = f32;
@@ -10,22 +10,39 @@ enum Value {
     Nil
 }
 
-pub fn interpret(expr: Expression) {
-    let _= evaluate(expr)
-        .and_then(stringify)
-        .map(|output| println!("{}", output));
+
+pub fn interpret_statements(statements : Vec<Statement>) -> Result<()> {
+    for stmt in statements {
+        execute(&stmt)?;
+    }
+
+    Ok(())
 }
 
-fn evaluate(expr: Expression) -> Result<Value> {
+fn execute(statement: &Statement) -> Result<()>{
+    match statement {
+        Statement::Expression(expr) => {
+            let _ = evaluate(expr); // TODO: handle value?
+        }
+        Statement::Print(expr) => {
+            let value = evaluate(expr)?;
+            println!("{}", stringify(value)?);
+        }
+    }
+
+    Ok(())
+}
+
+fn evaluate(expr: &Expression) -> Result<Value> {
     match expr {
         Expression::Binary(lhs, op, rhs) => {
-            binary(*lhs, *rhs, &op.typ)
+            binary(lhs, rhs, &op.typ)
         },
         Expression::Unary(lexeme, rhs) => {
-            unary(&lexeme, *rhs)
+            unary(lexeme, rhs)
         },
         Expression::Grouping(group) => {
-            evaluate(*group)
+            evaluate(group)
         },
         Expression::Literal(lit) => {
             literal(lit)
@@ -42,7 +59,7 @@ fn stringify(obj: Value) -> Result<String> {
     }
 }
 
-fn binary(lhs: Expression, rhs: Expression, typ: &TokenType) -> Result<Value> {
+fn binary(lhs: &Expression, rhs: &Expression, typ: &TokenType) -> Result<Value> {
     let left = evaluate(lhs);
     let right = evaluate(rhs);
 
@@ -106,7 +123,7 @@ fn binary(lhs: Expression, rhs: Expression, typ: &TokenType) -> Result<Value> {
     }
 }
 
-fn unary(lexeme: &Token, rhs: Expression) -> Result<Value> {
+fn unary(lexeme: &Token, rhs: &Expression) -> Result<Value> {
     let right = evaluate(rhs);
 
     if right.is_err() {
@@ -134,11 +151,11 @@ fn unary(lexeme: &Token, rhs: Expression) -> Result<Value> {
     }
 }
 
-fn literal(lit: Literal) -> Result<Value> {
+fn literal(lit: &Literal) -> Result<Value> {
     match lit {
-        Literal::Number(n) => Ok(Value::Number(n)),
-        Literal::String(s) => Ok(Value::String(s)),
-        Literal::Bool(b) => Ok(Value::Bool(b)),
+        Literal::Number(n) => Ok(Value::Number(*n)),
+        Literal::String(s) => Ok(Value::String(s.clone())),
+        Literal::Bool(b) => Ok(Value::Bool(*b)),
         Literal::Nil => Ok(Value::Nil)
     }
 }
