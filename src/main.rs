@@ -1,4 +1,4 @@
-use jlox::interpreter;
+use jlox::interpreter::Interpreter;
 use jlox::scanner::Scanner;
 use jlox::parser::Parser;
 use anyhow::Result;
@@ -16,7 +16,8 @@ fn run(source: Vec<char>) {
     }
 
     let stmts = stmts.ok().unwrap();
-    let res = interpreter::interpret_statements(stmts);
+    let mut interpreter = Interpreter::new();
+    let res = interpreter.interpret_statements(stmts);
     if res.is_err() {
         println!("{}", res.err().unwrap());
     }

@@ -13,7 +13,10 @@ pub struct ParseError;
 
 // Grammar:
 //
-// program        → statement* EOF ;
+// program        → declaration* EOF ;
+// declaration    → varDecl
+//                | statement ;
+// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 // statement      → exprStmt
 //                | printStmt ;
 // exprStmt       → expression ";" ;
@@ -26,7 +29,7 @@ pub struct ParseError;
 // unary          → ( "!" | "-" ) unary
 //                | primary ;
 // primary        → NUMBER | STRING | "true" | "false" | "nil"
-//                | "(" expression ")" ;
+//                | "(" expression ")" | IDENTIFIER;
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
@@ -35,6 +38,40 @@ impl Parser {
             current: 0,
             error: Error::new(),
         }
+    }
+
+    pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
+        let mut statements = vec![];
+
+        while !self.is_at_end() {
+            let decl = self.declaration();
+            if decl.is_err() {
+                self.sync();
+                continue;
+            }
+            statements.push(decl.unwrap());
+        }
+
+        Ok(statements)
+    }
+
+    fn declaration(&mut self) -> Result<Statement, ParseError> {
+        if self.match_token(&[TokenType::Var]) {
+            return self.var_decl();
+        }
+
+        self.statement()
+    }
+
+    fn var_decl(&mut self) -> Result<Statement, ParseError> {
+        let name = self.consume(TokenType::Identifier, "Expected variable name")?;
+        let mut expr = None;
+        if self.match_token(&[TokenType::Equal]) {
+            expr = Some(self.expression()?);
+        }
+        let _ = self.consume(TokenType::Semicolon, "Expected ';' after variable declaration");
+
+        Ok(Statement::Variable(name, expr))
     }
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
@@ -173,6 +210,10 @@ impl Parser {
             ));
         }
 
+        if self.match_token(&[TokenType::Identifier]) {
+            return Ok(Expression::Variable(self.previous()));
+        }
+
         if self.match_token(&[TokenType::LeftParenthesis]) {
             let expr = self.expression();
             if expr.is_err() {
@@ -234,71 +275,27 @@ impl Parser {
         ParseError
     }
 
-    // fn sync(&mut self) {
-    //     self.advance();
-    //
-    //     while !self.is_at_end() {
-    //         if self.previous().typ == TokenType::Semicolon {
-    //             return;
-    //         }
-    //
-    //         match self.peek().typ {
-    //             TokenType::Class
-    //             | TokenType::Fun
-    //             | TokenType::Var
-    //             | TokenType::For
-    //             | TokenType::If
-    //             | TokenType::While
-    //             | TokenType::Print
-    //             | TokenType::Return => return,
-    //             _ => {}
-    //         }
-    //
-    //         self.advance();
-    //     }
-    // }
-
-    pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
-        let mut statements = vec![];
+    fn sync(&mut self) {
+        self.advance();
 
         while !self.is_at_end() {
-            statements.push(self.statement()?);
+            if self.previous().typ == TokenType::Semicolon {
+                return;
+            }
+
+            match self.peek().typ {
+                TokenType::Class
+                | TokenType::Fun
+                | TokenType::Var
+                | TokenType::For
+                | TokenType::If
+                | TokenType::While
+                | TokenType::Print
+                | TokenType::Return => return,
+                _ => {}
+            }
+
+            self.advance();
         }
-
-        Ok(statements)
     }
-
-    // TODO: may be use it with cli arg passed
-    // fn print_ast(expr: &Expression) -> String {
-    //     let mut string = String::new();
-    //     string += "(";
-    //
-    //     match expr {
-    //         Expression::Binary(lhs, op, rhs) => {
-    //             string += &(op.lexeme.clone() + " ");
-    //             string += &(Self::print_ast(lhs) + " ");
-    //             string += &Self::print_ast(rhs);
-    //         },
-    //         Expression::Grouping(group) => {
-    //             string += "grouping ";
-    //             string += &Self::print_ast(group);
-    //         }
-    //         Expression::Literal(liter) => {
-    //             match liter {
-    //                 Literal::Number(n) => return n.to_string(),
-    //                 Literal::String(s) => return String::from(s),
-    //                 Literal::Bool(b) => return b.to_string(),
-    //                 Literal::Nil => return String::from("nil")
-    //             }
-    //         }
-    //         Expression::Unary(lexeme, rhs) => {
-    //             string += &(lexeme.lexeme.clone() + " ");
-    //             string += &Self::print_ast(rhs);
-    //         }
-    //     }
-    //
-    //     string += ")";
-    //     string
-    // }
-
 }

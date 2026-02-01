@@ -5,3 +5,5 @@ pub mod error;
 pub mod interpreter;
 pub mod statement;
 pub mod expression;
+pub mod environment;
+pub mod value;
