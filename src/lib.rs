@@ -1,9 +1,9 @@
-pub mod token;
-pub mod scanner;
-pub mod parser;
-pub mod error;
-pub mod interpreter;
-pub mod statement;
-pub mod expression;
 pub mod environment;
+pub mod error;
+pub mod expression;
+pub mod interpreter;
+pub mod parser;
+pub mod scanner;
+pub mod statement;
+pub mod token;
 pub mod value;

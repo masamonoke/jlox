@@ -38,7 +38,7 @@ pub enum TokenType {
     True,
     Var,
     While,
-    Eof
+    Eof,
 }
 
 #[derive(Clone, Debug)]
@@ -46,7 +46,7 @@ pub enum Literal {
     Number(f32),
     String(String),
     Bool(bool),
-    Nil
+    Nil,
 }
 
 #[derive(Clone, Debug)]
@@ -54,5 +54,5 @@ pub struct Token {
     pub typ: TokenType,
     pub lexeme: String,
     pub literal: Option<Literal>,
-    pub line: u32
+    pub line: u32,
 }

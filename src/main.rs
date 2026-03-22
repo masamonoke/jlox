@@ -1,7 +1,7 @@
-use jlox::interpreter::Interpreter;
-use jlox::scanner::Scanner;
-use jlox::parser::Parser;
 use anyhow::Result;
+use jlox::interpreter::Interpreter;
+use jlox::parser::Parser;
+use jlox::scanner::Scanner;
 
 fn run(source: Vec<char>) {
     let mut scanner = Scanner::new(source);
@@ -36,9 +36,9 @@ fn main() {
             let source = read_file(filename);
             match source {
                 Ok(source) => run(source.chars().collect()),
-                Err(e) => panic!("Failed to open file {}: {}", filename, e)
+                Err(e) => panic!("Failed to open file {}: {}", filename, e),
             }
-        },
-        _ => panic!("Wrong number of arguments")
+        }
+        _ => panic!("Wrong number of arguments"),
     }
 }

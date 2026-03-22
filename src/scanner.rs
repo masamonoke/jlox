@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 use crate::token::Literal;
-use crate::token::TokenType;
 use crate::token::Token;
-
+use crate::token::TokenType;
 
 pub struct Scanner {
     source: Vec<char>,
@@ -11,7 +10,7 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: u32,
-    keywords: HashMap<String, TokenType>
+    keywords: HashMap<String, TokenType>,
 }
 
 impl Scanner {
@@ -32,9 +31,17 @@ impl Scanner {
             ("this".to_string(), TokenType::This),
             ("true".to_string(), TokenType::True),
             ("var".to_string(), TokenType::Var),
-            ("while".to_string(), TokenType::While)
-        ].into();
-        Scanner { source, tokens: vec![], start: 0, current: 0, line: 1, keywords }
+            ("while".to_string(), TokenType::While),
+        ]
+        .into();
+        Scanner {
+            source,
+            tokens: vec![],
+            start: 0,
+            current: 0,
+            line: 1,
+            keywords,
+        }
     }
 
     pub fn scan(&mut self) {
@@ -43,7 +50,12 @@ impl Scanner {
             self.scan_token();
         }
 
-        self.tokens.push(Token { typ: TokenType::Eof, lexeme: "".to_string(), literal: None, line: self.line });
+        self.tokens.push(Token {
+            typ: TokenType::Eof,
+            lexeme: "".to_string(),
+            literal: None,
+            line: self.line,
+        });
     }
 
     pub fn tokens(&self) -> Vec<Token> {
@@ -63,12 +75,12 @@ impl Scanner {
     }
 
     fn match_symbol(&mut self, symbol: char) -> bool {
-        self.match_brace(symbol) ||
-        self.match_escape(symbol) ||
-        self.match_string() ||
-        self.match_operator(symbol) ||
-        self.match_number(symbol) ||
-        self.match_identifier(symbol)
+        self.match_brace(symbol)
+            || self.match_escape(symbol)
+            || self.match_string()
+            || self.match_operator(symbol)
+            || self.match_number(symbol)
+            || self.match_identifier(symbol)
     }
 
     fn match_operator(&mut self, symbol: char) -> bool {
@@ -92,7 +104,7 @@ impl Scanner {
                     self.add_token_without_lexeme(TokenType::Slash);
                 }
             }
-            _ => return false
+            _ => return false,
         }
 
         true
@@ -104,7 +116,7 @@ impl Scanner {
             ')' => self.add_token_without_lexeme(TokenType::RightParenthesis),
             '{' => self.add_token_without_lexeme(TokenType::LeftBrace),
             '}' => self.add_token_without_lexeme(TokenType::RightBrace),
-            _ => return false
+            _ => return false,
         }
 
         true
@@ -112,9 +124,9 @@ impl Scanner {
 
     fn match_escape(&mut self, symbol: char) -> bool {
         match symbol {
-            ' ' | '\r' | '\t' => {},
+            ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
-            _ => return false
+            _ => return false,
         }
 
         true
@@ -139,7 +151,9 @@ impl Scanner {
         }
 
         self.advance();
-        let string: String = self.source[self.start + 1..self.current - 1].iter().collect();
+        let string: String = self.source[self.start + 1..self.current - 1]
+            .iter()
+            .collect();
         self.add_token(TokenType::String, Some(Literal::String(string)));
 
         true
@@ -147,7 +161,7 @@ impl Scanner {
 
     fn match_number(&mut self, symbol: char) -> bool {
         if !Scanner::is_digit(symbol) {
-            return false
+            return false;
         }
 
         while self.peek().is_some_and(Scanner::is_digit) {
@@ -175,8 +189,8 @@ impl Scanner {
         }
 
         let is_identifier = |symbol: char| {
-            let is_alphabet = symbol.is_ascii_lowercase() ||
-            symbol.is_ascii_uppercase() || (symbol  == '_');
+            let is_alphabet =
+                symbol.is_ascii_lowercase() || symbol.is_ascii_uppercase() || (symbol == '_');
 
             is_alphabet || Scanner::is_digit(symbol)
         };
@@ -213,7 +227,12 @@ impl Scanner {
         self.add_token(typ, None);
     }
 
-    fn add_long_operator(&mut self, expected_symbol: char, long_type: TokenType, short_type: TokenType) {
+    fn add_long_operator(
+        &mut self,
+        expected_symbol: char,
+        long_type: TokenType,
+        short_type: TokenType,
+    ) {
         if self.match_and_advance(expected_symbol) {
             self.add_token_without_lexeme(long_type);
         } else {
@@ -223,7 +242,12 @@ impl Scanner {
 
     fn add_token(&mut self, typ: TokenType, literal: Option<Literal>) {
         let lexeme = self.source[self.start..self.current].iter().collect();
-        self.tokens.push(Token { typ, lexeme, literal, line: self.line });
+        self.tokens.push(Token {
+            typ,
+            lexeme,
+            literal,
+            line: self.line,
+        });
     }
 
     fn match_and_advance(&mut self, expected: char) -> bool {
@@ -241,7 +265,7 @@ impl Scanner {
 
     fn peek(&self) -> Option<char> {
         if self.is_end() {
-            return None
+            return None;
         }
 
         Some(self.source[self.current])
@@ -249,7 +273,7 @@ impl Scanner {
 
     fn peek_next(&self) -> Option<char> {
         if self.current + 1 >= self.source.len() {
-            return None
+            return None;
         }
 
         Some(self.source[self.current + 1])
@@ -262,9 +286,15 @@ impl Scanner {
             if t.literal.is_some() {
                 let literal = t.literal.clone().unwrap();
                 match literal {
-                    Literal::Number(num) => println!("Token type: {:?}, lexeme: {}, literal: {}", token_type, lexeme, num),
-                    Literal::String(string) => println!("Token type: {:?}, lexeme: {}, literal: {}", token_type, lexeme, string),
-                    _ => todo!()
+                    Literal::Number(num) => println!(
+                        "Token type: {:?}, lexeme: {}, literal: {}",
+                        token_type, lexeme, num
+                    ),
+                    Literal::String(string) => println!(
+                        "Token type: {:?}, lexeme: {}, literal: {}",
+                        token_type, lexeme, string
+                    ),
+                    _ => todo!(),
                 }
             } else {
                 println!("Token type: {:?}, lexeme: {}", token_type, lexeme);

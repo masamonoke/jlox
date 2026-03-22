@@ -1,4 +1,4 @@
-use crate::token::{Token, Literal};
+use crate::token::{Literal, Token};
 
 #[derive(Debug)]
 pub enum Expression {
@@ -6,5 +6,5 @@ pub enum Expression {
     Unary(Token, Box<Expression>),
     Literal(Literal),
     Grouping(Box<Expression>),
-    Variable(Token)
+    Variable(Token),
 }

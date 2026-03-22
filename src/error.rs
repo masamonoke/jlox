@@ -1,7 +1,7 @@
 use crate::token::{Token, TokenType};
 
 pub struct Error {
-    pub had_error: bool
+    pub had_error: bool,
 }
 
 impl Error {

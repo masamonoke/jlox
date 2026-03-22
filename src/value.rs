@@ -5,5 +5,5 @@ pub enum Value {
     Bool(bool),
     Number(Number),
     String(String),
-    Nil
+    Nil,
 }

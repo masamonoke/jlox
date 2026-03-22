@@ -1,5 +1,8 @@
 use crate::{
-    error::Error, expression::Expression, statement::Statement, token::{Literal, Token, TokenType}
+    error::Error,
+    expression::Expression,
+    statement::Statement,
+    token::{Literal, Token, TokenType},
 };
 
 pub struct Parser {
@@ -18,7 +21,9 @@ pub struct ParseError;
 //                | statement ;
 // varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 // statement      → exprStmt
-//                | printStmt ;
+//                | printStmt
+//                | block ;
+// block          → "{" declaration "}"
 // exprStmt       → expression ";" ;
 // printStmt      → "print" expression ";" ;
 // expression     → equality ;
@@ -69,14 +74,21 @@ impl Parser {
         if self.match_token(&[TokenType::Equal]) {
             expr = Some(self.expression()?);
         }
-        let _ = self.consume(TokenType::Semicolon, "Expected ';' after variable declaration");
+        let _ = self.consume(
+            TokenType::Semicolon,
+            "Expected ';' after variable declaration",
+        );
 
         Ok(Statement::Variable(name, expr))
     }
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
         if self.match_token(&[TokenType::Print]) {
-            return self.print_statement()
+            return self.print_statement();
+        }
+
+        if self.match_token(&[TokenType::LeftBrace]) {
+            return self.block();
         }
 
         self.expression_statement()
@@ -86,6 +98,17 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after value")?;
         Ok(Statement::Print(expr))
+    }
+
+    fn block(&mut self) -> Result<Statement, ParseError> {
+        let mut stmts = vec![];
+        while !self.check_token(&TokenType::RightBrace) {
+            // TODO: what if declaration is erroneous?
+            stmts.push(self.declaration().unwrap());
+        }
+
+        let _ = self.consume(TokenType::RightBrace, "Expected '}' after block");
+        Ok(Statement::Block(stmts))
     }
 
     fn expression_statement(&mut self) -> Result<Statement, ParseError> {
@@ -182,7 +205,7 @@ impl Parser {
             let op = self.previous();
             let right = self.unary();
             if right.is_err() {
-                return Err(self.report_error(self.peek().clone(), "Failed to match rhs value"))
+                return Err(self.report_error(self.peek().clone(), "Failed to match rhs value"));
             }
             return Ok(Expression::Unary(op, Box::new(right.unwrap())));
         }
