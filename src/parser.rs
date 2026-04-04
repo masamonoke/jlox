@@ -26,7 +26,8 @@ pub struct ParseError;
 // block          → "{" declaration "}"
 // exprStmt       → expression ";" ;
 // printStmt      → "print" expression ";" ;
-// expression     → equality ;
+// expression     → assignment;
+// assignment     → equality | IDENTIFIER "=" assignment ;
 // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term           → factor ( ( "-" | "+" ) factor )* ;
@@ -45,6 +46,7 @@ impl Parser {
         }
     }
 
+    // TODO: maybe return list or errors and the caller will output them if needed and etc?
     pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
         let mut statements = vec![];
 
@@ -55,6 +57,10 @@ impl Parser {
                 continue;
             }
             statements.push(decl.unwrap());
+        }
+
+        if self.error.had_error {
+            return Err(ParseError)
         }
 
         Ok(statements)
@@ -118,7 +124,22 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expression, ParseError> {
+        let expr = self.equality();
+        if !self.match_token(&[TokenType::Equal]) {
+            return expr
+        }
+
+        let lhs = expr;
+        if let Expression::Variable(tok) = lhs? {
+            let rhs = self.assignment()?;
+            return Ok(Expression::Assign(tok, Box::new(rhs)))
+        }
+
+        Err(self.report_error(self.peek().clone(), "Failed to match assignment"))
     }
 
     fn equality(&mut self) -> Result<Expression, ParseError> {
@@ -294,6 +315,7 @@ impl Parser {
 
     fn report_error(&mut self, token: Token, message: &str) -> ParseError {
         self.error.error(token, message);
+        self.error.had_error = true;
 
         ParseError
     }

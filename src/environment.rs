@@ -37,6 +37,10 @@ impl Environment {
 
         None
     }
+
+    pub fn contains(&self, name: &str) -> bool {
+        self.globals.borrow().contains_key(name)
+    }
 }
 
 impl Default for Environment {

@@ -11,7 +11,7 @@ fn run(source: Vec<char>) {
     let mut parser = Parser::new(tokens);
     let stmts = parser.parse();
     if stmts.is_err() {
-        println!("Parse error: {:?}", stmts.err().unwrap());
+        println!("Parsing failed");
         return;
     }
 

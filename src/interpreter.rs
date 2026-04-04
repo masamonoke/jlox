@@ -13,6 +13,7 @@ pub struct Interpreter {
     env: Rc<environment::Environment>,
 }
 
+// TODO: add more info to errors like line where it happend and so on
 impl Interpreter {
     pub fn new() -> Interpreter {
         Interpreter {
@@ -20,7 +21,7 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret_statements(&mut self, statements: Vec<Statement>) -> Result<()> {
+    pub fn interpret_statements(&mut self, statements: Vec<Statement>) -> Result<(), anyhow::Error> {
         for stmt in statements {
             self.execute(&stmt)?;
         }
@@ -28,10 +29,10 @@ impl Interpreter {
         Ok(())
     }
 
-    fn execute(&mut self, statement: &Statement) -> Result<()> {
+    fn execute(&mut self, statement: &Statement) -> Result<(), anyhow::Error> {
         match statement {
             Statement::Expression(expr) => {
-                let _ = self.evaluate(expr); // TODO: handle value?
+                self.evaluate(expr)?; // TODO: handle value?
             }
             Statement::Print(expr) => {
                 let value = self.evaluate(expr)?;
@@ -42,23 +43,25 @@ impl Interpreter {
                 if initializer.is_some() {
                     value = Some(self.evaluate(initializer.as_ref().unwrap())?);
                 }
+
                 self.env.define(token.lexeme.clone(), value);
             }
             Statement::Block(list) => {
-                self.execute_block(list, Environment::from(self.env.clone()));
+                self.execute_block(list, Environment::from(self.env.clone()))?;
             }
         }
 
         Ok(())
     }
 
-    fn execute_block(&mut self, stmts: &Vec<Statement>, env: Environment) {
+    fn execute_block(&mut self, stmts: &Vec<Statement>, env: Environment) -> Result<(), anyhow::Error>{
         let prev_env = self.env.clone();
         self.env = Rc::new(env);
         for stmt in stmts {
-            let _ = self.execute(stmt);
+            self.execute(stmt)?
         }
         self.env = prev_env;
+        Ok(())
     }
 
     fn evaluate(&self, expr: &Expression) -> Result<Value> {
@@ -68,9 +71,28 @@ impl Interpreter {
             Expression::Grouping(group) => self.evaluate(group),
             Expression::Literal(lit) => literal(lit),
             Expression::Variable(token) => {
+                if !self.env.contains(&token.lexeme) {
+                    return Err(anyhow!("Undefined variable '{}", &token.lexeme));
+                }
+
                 let value = self.env.get(&token.lexeme);
-                // TODO: if variable undefined then return error
-                Ok(value.unwrap())
+                if let Some(value) = value {
+                    return Ok(value)
+                }
+                Err(anyhow!("Usage of uninitialized variable '{}'", &token.lexeme))
+            },
+            Expression::Assign(tok, expr) => {
+                if self.env.get(&tok.lexeme).is_none() {
+                    return Err(anyhow!("{} is not declared", &tok.lexeme))
+                }
+
+                let rhs = self.evaluate(expr);
+                if let Ok(rhs) = rhs {
+                    self.env.define(tok.lexeme.clone(), Some(rhs.clone()));
+                    return Ok(rhs)
+                }
+
+                Err(anyhow!("{}", rhs.err().unwrap()))
             }
         }
     }
@@ -79,8 +101,12 @@ impl Interpreter {
         let left = self.evaluate(lhs);
         let right = self.evaluate(rhs);
 
-        if left.is_err() || right.is_err() {
-            return Err(anyhow!("error"));
+        if let Some(left_err) = left.as_ref().err() {
+            return Err(anyhow!("{}", left_err))
+        }
+
+        if let Some(right_err) = right.as_ref().err() {
+            return Err(anyhow!("{}", right_err))
         }
 
         let left = left.unwrap();
