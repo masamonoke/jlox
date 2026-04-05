@@ -82,7 +82,7 @@ impl Interpreter {
                 Err(anyhow!("Usage of uninitialized variable '{}'", &token.lexeme))
             },
             Expression::Assign(tok, expr) => {
-                if self.env.get(&tok.lexeme).is_none() {
+                if !self.env.contains(&tok.lexeme) {
                     return Err(anyhow!("{} is not declared", &tok.lexeme))
                 }
 
