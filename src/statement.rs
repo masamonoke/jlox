@@ -5,4 +5,5 @@ pub enum Statement {
     Print(Expression),
     Variable(Token, Option<Expression>),
     Block(Vec<Statement>),
+    If(Expression, Box<Statement>, Option<Box<Statement>>)
 }

@@ -7,5 +7,6 @@ pub enum Expression {
     Literal(Literal),
     Grouping(Box<Expression>),
     Variable(Token),
-    Assign(Token, Box<Expression>)
+    Assign(Token, Box<Expression>),
+    Logical(Box<Expression>, Token, Box<Expression>)
 }

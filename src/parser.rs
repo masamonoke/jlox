@@ -22,12 +22,17 @@ pub struct ParseError;
 // varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 // statement      → exprStmt
 //                | printStmt
-//                | block ;
-// block          → "{" declaration "}"
+//                | block
+//                | if_statement ;
+// block          → "{" declaration "}" ;
 // exprStmt       → expression ";" ;
 // printStmt      → "print" expression ";" ;
-// expression     → assignment;
-// assignment     → equality | IDENTIFIER "=" assignment ;
+// if_statement   → "if" "(" expression ")" statement
+//                   ( "else" statement )? ;
+// expression     → assignment ;
+// assignment     → logic_or | IDENTIFIER "=" assignment ;
+// logic_or       → logic_and ( "or" logic_and )* ;
+// logic_and      → equality ( "and" equality )* ;
 // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term           → factor ( ( "-" | "+" ) factor )* ;
@@ -97,6 +102,10 @@ impl Parser {
             return self.block();
         }
 
+        if self.match_token(&[TokenType::If]) {
+            return self.if_statement();
+        }
+
         self.expression_statement()
     }
 
@@ -117,6 +126,20 @@ impl Parser {
         Ok(Statement::Block(stmts))
     }
 
+    fn if_statement(&mut self) -> Result<Statement, ParseError> {
+        let _ = self.consume(TokenType::LeftParenthesis, "Expected '(' after 'if'");
+        let cond = self.expression()?;
+        let _ = self.consume(TokenType::RightParenthesis, "Expected ')' after 'if'");
+
+        let then_branch = Box::new(self.statement()?);
+        let mut else_branch = None;
+        if self.match_token(&[TokenType::Else]) {
+            else_branch = Some(Box::new(self.statement()?))
+        }
+
+        Ok(Statement::If(cond, then_branch, else_branch))
+    }
+
     fn expression_statement(&mut self) -> Result<Statement, ParseError> {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after value")?;
@@ -128,7 +151,7 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<Expression, ParseError> {
-        let expr = self.equality();
+        let expr = self.logic_or();
         if !self.match_token(&[TokenType::Equal]) {
             return expr
         }
@@ -140,6 +163,28 @@ impl Parser {
         }
 
         Err(self.report_error(self.peek().clone(), "Failed to match assignment"))
+    }
+
+    fn logic_or(&mut self) -> Result<Expression, ParseError> {
+        let mut expr = self.logic_and()?;
+        while self.match_token(&[TokenType::Or]) {
+            let op = self.previous();
+            let rhs = self.logic_and()?;
+            expr = Expression::Logical(Box::new(expr), op, Box::new(rhs));
+        }
+
+        Ok(expr)
+    }
+
+    fn logic_and(&mut self) -> Result<Expression, ParseError> {
+        let mut expr = self.equality()?;
+        while self.match_token(&[TokenType::And]) {
+            let op = self.previous();
+            let rhs = self.equality()?;
+            expr = Expression::Logical(Box::new(expr), op, Box::new(rhs));
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expression, ParseError> {

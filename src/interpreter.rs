@@ -48,6 +48,15 @@ impl Interpreter {
             }
             Statement::Block(list) => {
                 self.execute_block(list, Environment::from(self.env.clone()))?;
+            },
+            Statement::If(cond, then_scope, else_scope) => {
+                if let Value::Bool(cond_res) = self.evaluate(cond)? {
+                    if cond_res {
+                        let _ = self.execute(then_scope.as_ref());
+                    } else if else_scope.is_some() {
+                        let _ = self.execute(else_scope.as_ref().unwrap().as_ref());
+                    }
+                }
             }
         }
 
@@ -93,6 +102,15 @@ impl Interpreter {
                 }
 
                 Err(anyhow!("{}", rhs.err().unwrap()))
+            },
+            Expression::Logical(lhs_ptr, op, rhs_ptr) => {
+                let lhs = self.evaluate(lhs_ptr)?;
+                let is_left = is_truthy(&lhs);
+                return match op.typ {
+                    TokenType::Or if is_left => Ok(lhs),
+                    TokenType::And if !is_left => Ok(lhs),
+                    _ => self.evaluate(rhs_ptr)
+                }
             }
         }
     }
@@ -194,6 +212,7 @@ impl Interpreter {
             _ => todo!(),
         }
     }
+
 }
 
 impl Default for Interpreter {
@@ -217,5 +236,15 @@ fn literal(lit: &Literal) -> Result<Value> {
         Literal::String(s) => Ok(Value::String(s.clone())),
         Literal::Bool(b) => Ok(Value::Bool(*b)),
         Literal::Nil => Ok(Value::Nil),
+    }
+}
+
+fn is_truthy(val: &Value) -> bool {
+    match val {
+        Value::Bool(b) => *b == true,
+        // TODO: probably need to compare delta with epsilon or use separate type for floats
+        Value::Number(n) => *n != 0.0,
+        Value::String(s) => !s.is_empty(),
+        Value::Nil => false,
     }
 }
