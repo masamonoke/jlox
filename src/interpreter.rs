@@ -122,11 +122,11 @@ impl Interpreter {
             Expression::Logical(lhs_ptr, op, rhs_ptr) => {
                 let lhs = self.evaluate(lhs_ptr)?;
                 let is_left = is_truthy(&lhs);
-                return match op.typ {
+                match op.typ {
                     TokenType::Or if is_left => Ok(lhs),
                     TokenType::And if !is_left => Ok(lhs),
                     _ => self.evaluate(rhs_ptr),
-                };
+                }
             }
         }
     }
@@ -256,7 +256,7 @@ fn literal(lit: &Literal) -> Result<Value> {
 
 fn is_truthy(val: &Value) -> bool {
     match val {
-        Value::Bool(b) => *b == true,
+        Value::Bool(b) => *b,
         // TODO: probably need to compare delta with epsilon or use separate type for floats
         Value::Number(n) => *n != 0.0,
         Value::String(s) => !s.is_empty(),

@@ -24,6 +24,9 @@ pub struct ParseError;
 //                | printStmt
 //                | block
 //                | if_statement ;
+// forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
+//                  expression? ";"
+//                  expression? ")" statement ;
 // whileStmt      → "while" "(" expression ")" statement ;
 // block          → "{" declaration "}" ;
 // exprStmt       → expression ";" ;
@@ -111,6 +114,10 @@ impl Parser {
             return self.while_statement();
         }
 
+        if self.match_token(&[TokenType::For]) {
+            return self.for_statement();
+        }
+
         self.expression_statement()
     }
 
@@ -150,7 +157,50 @@ impl Parser {
         let cond = self.expression()?;
         self.consume(TokenType::RightParenthesis, "Expected ')' after 'while'.")?;
         let body = self.statement()?;
-        return Ok(Statement::While(cond, Box::new(body)));
+        Ok(Statement::While(cond, Box::new(body)))
+    }
+
+    fn for_statement(&mut self) -> Result<Statement, ParseError> {
+        self.consume(TokenType::LeftParenthesis, "Expected '(' after 'for'.")?;
+        let init = if self.match_token(&[TokenType::Semicolon]) {
+            None
+        } else if self.match_token(&[TokenType::Var]) {
+            Some(self.var_decl()?)
+        } else {
+            Some(self.expression_statement()?)
+        };
+
+        let mut cond: Option<Expression> = None;
+        if !self.check_token(&TokenType::Semicolon) {
+            cond = Some(self.expression()?);
+        }
+        self.consume(TokenType::Semicolon, "Expected ';' after loop condition.")?;
+
+        let mut inc: Option<Expression> = None;
+        if !self.check_token(&TokenType::RightParenthesis) {
+            inc = Some(self.expression()?);
+        }
+        self.consume(
+            TokenType::RightParenthesis,
+            "Expected ')' after for clauses.",
+        )?;
+
+        let mut body = self.statement()?;
+        if let Some(inc) = inc {
+            body = Statement::Block(vec![body, Statement::Expression(inc)]);
+        }
+
+        if cond.is_none() {
+            cond = Some(Expression::Literal(Literal::Bool(true)));
+        }
+
+        body = Statement::While(cond.unwrap(), Box::new(body));
+
+        if let Some(init) = init {
+            body = Statement::Block(vec![init, body]);
+        }
+
+        Ok(body)
     }
 
     fn expression_statement(&mut self) -> Result<Statement, ParseError> {
