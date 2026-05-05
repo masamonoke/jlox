@@ -24,6 +24,7 @@ pub struct ParseError;
 //                | printStmt
 //                | block
 //                | if_statement ;
+// whileStmt      → "while" "(" expression ")" statement ;
 // block          → "{" declaration "}" ;
 // exprStmt       → expression ";" ;
 // printStmt      → "print" expression ";" ;
@@ -106,6 +107,10 @@ impl Parser {
             return self.if_statement();
         }
 
+        if self.match_token(&[TokenType::While])  {
+            return self.while_statement();
+        }
+
         self.expression_statement()
     }
 
@@ -138,6 +143,14 @@ impl Parser {
         }
 
         Ok(Statement::If(cond, then_branch, else_branch))
+    }
+
+    fn while_statement(&mut self) -> Result<Statement, ParseError> {
+        self.consume(TokenType::LeftParenthesis, "Expected '(' after 'while'.")?;
+        let cond = self.expression()?;
+        self.consume(TokenType::RightParenthesis, "Expected ')' after 'while'.")?;
+        let body = self.statement()?;
+        return Ok(Statement::While(cond, Box::new(body)));
     }
 
     fn expression_statement(&mut self) -> Result<Statement, ParseError> {

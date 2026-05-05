@@ -1,6 +1,6 @@
 pub type Number = f32;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Value {
     Bool(bool),
     Number(Number),

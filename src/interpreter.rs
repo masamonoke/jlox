@@ -57,6 +57,11 @@ impl Interpreter {
                         let _ = self.execute(else_scope.as_ref().unwrap().as_ref());
                     }
                 }
+            },
+            Statement::While(cond, body) => {
+                while is_truthy(&self.evaluate(cond)?) {
+                    self.execute(body)?;
+                }
             }
         }
 
@@ -97,7 +102,8 @@ impl Interpreter {
 
                 let rhs = self.evaluate(expr);
                 if let Ok(rhs) = rhs {
-                    self.env.define(tok.lexeme.clone(), Some(rhs.clone()));
+                    let is_updated = self.env.update(tok.lexeme.clone(), Some(rhs.clone()));
+                    assert!(is_updated);
                     return Ok(rhs)
                 }
 

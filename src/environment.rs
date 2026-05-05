@@ -2,6 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::value::Value;
 
+#[derive(Debug)]
 pub struct Environment {
     globals: RefCell<HashMap<String, Option<Value>>>,
     enclosing: Option<Rc<Environment>>,
@@ -21,8 +22,26 @@ impl Environment {
         outer
     }
 
+    // TODO: return bool
     pub fn define(&self, name: String, value: Option<Value>) {
         self.globals.borrow_mut().insert(name, value);
+    }
+
+    pub fn update(&self, name: String, value: Option<Value>) -> bool {
+        if self.globals.borrow().contains_key(&name) {
+            self.globals.borrow_mut().insert(name, value);
+            return true;
+        }
+
+        let mut scope = self.enclosing.as_ref();
+
+        while let Some(current) = scope {
+            if current.globals.borrow_mut().insert(name.clone(), value.clone()).is_some() {
+                return true;
+            }
+            scope = current.enclosing.as_ref();
+        }
+        false
     }
 
     pub fn get(&self, name: &str) -> Option<Value> {
@@ -39,7 +58,7 @@ impl Environment {
     }
 
     pub fn contains(&self, name: &str) -> bool {
-        self.globals.borrow().contains_key(name)
+        self.globals.borrow().contains_key(name) || self.enclosing.as_ref().is_some_and(|e| e.contains(name))
     }
 }
 
