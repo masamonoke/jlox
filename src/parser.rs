@@ -66,7 +66,7 @@ impl Parser {
         }
 
         if self.error.had_error {
-            return Err(ParseError)
+            return Err(ParseError);
         }
 
         Ok(statements)
@@ -107,7 +107,7 @@ impl Parser {
             return self.if_statement();
         }
 
-        if self.match_token(&[TokenType::While])  {
+        if self.match_token(&[TokenType::While]) {
             return self.while_statement();
         }
 
@@ -166,13 +166,13 @@ impl Parser {
     fn assignment(&mut self) -> Result<Expression, ParseError> {
         let expr = self.logic_or();
         if !self.match_token(&[TokenType::Equal]) {
-            return expr
+            return expr;
         }
 
         let lhs = expr;
         if let Expression::Variable(tok) = lhs? {
             let rhs = self.assignment()?;
-            return Ok(Expression::Assign(tok, Box::new(rhs)))
+            return Ok(Expression::Assign(tok, Box::new(rhs)));
         }
 
         Err(self.report_error(self.peek().clone(), "Failed to match assignment"))

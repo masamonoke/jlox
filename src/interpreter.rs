@@ -21,7 +21,10 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret_statements(&mut self, statements: Vec<Statement>) -> Result<(), anyhow::Error> {
+    pub fn interpret_statements(
+        &mut self,
+        statements: Vec<Statement>,
+    ) -> Result<(), anyhow::Error> {
         for stmt in statements {
             self.execute(&stmt)?;
         }
@@ -32,7 +35,7 @@ impl Interpreter {
     fn execute(&mut self, statement: &Statement) -> Result<(), anyhow::Error> {
         match statement {
             Statement::Expression(expr) => {
-                self.evaluate(expr)?; // TODO: handle value?
+                self.evaluate(expr)?;
             }
             Statement::Print(expr) => {
                 let value = self.evaluate(expr)?;
@@ -48,7 +51,7 @@ impl Interpreter {
             }
             Statement::Block(list) => {
                 self.execute_block(list, Environment::from(self.env.clone()))?;
-            },
+            }
             Statement::If(cond, then_scope, else_scope) => {
                 if let Value::Bool(cond_res) = self.evaluate(cond)? {
                     if cond_res {
@@ -57,7 +60,7 @@ impl Interpreter {
                         let _ = self.execute(else_scope.as_ref().unwrap().as_ref());
                     }
                 }
-            },
+            }
             Statement::While(cond, body) => {
                 while is_truthy(&self.evaluate(cond)?) {
                     self.execute(body)?;
@@ -68,7 +71,11 @@ impl Interpreter {
         Ok(())
     }
 
-    fn execute_block(&mut self, stmts: &Vec<Statement>, env: Environment) -> Result<(), anyhow::Error>{
+    fn execute_block(
+        &mut self,
+        stmts: &Vec<Statement>,
+        env: Environment,
+    ) -> Result<(), anyhow::Error> {
         let prev_env = self.env.clone();
         self.env = Rc::new(env);
         for stmt in stmts {
@@ -91,32 +98,35 @@ impl Interpreter {
 
                 let value = self.env.get(&token.lexeme);
                 if let Some(value) = value {
-                    return Ok(value)
+                    return Ok(value);
                 }
-                Err(anyhow!("Usage of uninitialized variable '{}'", &token.lexeme))
-            },
+                Err(anyhow!(
+                    "Usage of uninitialized variable '{}'",
+                    &token.lexeme
+                ))
+            }
             Expression::Assign(tok, expr) => {
                 if !self.env.contains(&tok.lexeme) {
-                    return Err(anyhow!("{} is not declared", &tok.lexeme))
+                    return Err(anyhow!("{} is not declared", &tok.lexeme));
                 }
 
                 let rhs = self.evaluate(expr);
                 if let Ok(rhs) = rhs {
                     let is_updated = self.env.update(tok.lexeme.clone(), Some(rhs.clone()));
                     assert!(is_updated);
-                    return Ok(rhs)
+                    return Ok(rhs);
                 }
 
                 Err(anyhow!("{}", rhs.err().unwrap()))
-            },
+            }
             Expression::Logical(lhs_ptr, op, rhs_ptr) => {
                 let lhs = self.evaluate(lhs_ptr)?;
                 let is_left = is_truthy(&lhs);
                 return match op.typ {
                     TokenType::Or if is_left => Ok(lhs),
                     TokenType::And if !is_left => Ok(lhs),
-                    _ => self.evaluate(rhs_ptr)
-                }
+                    _ => self.evaluate(rhs_ptr),
+                };
             }
         }
     }
@@ -126,11 +136,11 @@ impl Interpreter {
         let right = self.evaluate(rhs);
 
         if let Some(left_err) = left.as_ref().err() {
-            return Err(anyhow!("{}", left_err))
+            return Err(anyhow!("{}", left_err));
         }
 
         if let Some(right_err) = right.as_ref().err() {
-            return Err(anyhow!("{}", right_err))
+            return Err(anyhow!("{}", right_err));
         }
 
         let left = left.unwrap();
@@ -218,7 +228,6 @@ impl Interpreter {
             _ => todo!(),
         }
     }
-
 }
 
 impl Default for Interpreter {

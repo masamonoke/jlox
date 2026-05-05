@@ -22,9 +22,8 @@ impl Environment {
         outer
     }
 
-    // TODO: return bool
-    pub fn define(&self, name: String, value: Option<Value>) {
-        self.globals.borrow_mut().insert(name, value);
+    pub fn define(&self, name: String, value: Option<Value>) -> bool {
+        return self.globals.borrow_mut().insert(name, value).is_some();
     }
 
     pub fn update(&self, name: String, value: Option<Value>) -> bool {
@@ -36,7 +35,12 @@ impl Environment {
         let mut scope = self.enclosing.as_ref();
 
         while let Some(current) = scope {
-            if current.globals.borrow_mut().insert(name.clone(), value.clone()).is_some() {
+            if current
+                .globals
+                .borrow_mut()
+                .insert(name.clone(), value.clone())
+                .is_some()
+            {
                 return true;
             }
             scope = current.enclosing.as_ref();
@@ -58,7 +62,8 @@ impl Environment {
     }
 
     pub fn contains(&self, name: &str) -> bool {
-        self.globals.borrow().contains_key(name) || self.enclosing.as_ref().is_some_and(|e| e.contains(name))
+        self.globals.borrow().contains_key(name)
+            || self.enclosing.as_ref().is_some_and(|e| e.contains(name))
     }
 }
 
